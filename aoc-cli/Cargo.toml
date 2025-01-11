@@ -1,0 +1,8 @@
+[package]
+edition = "2021"
+name = "aoc-cli"
+version = "0.1.0"
+
+[dependencies]
+anyhow.workspace = true
+clap = { version = "4.5.26", features = ["derive"] }

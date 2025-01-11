@@ -1,0 +1,10 @@
+[workspace.package]
+edition = "2021"
+version = "0.1.0"
+
+[workspace.dependencies]
+anyhow = "1.0.95"
+
+[workspace]
+members = ["aoc-cli", "day-1"]
+resolver = "2"
