@@ -19,3 +19,4 @@ cargo test -p day-<DAY_NUMBER> [<PART_NUMBER>]
 | Day | Example 1 | Part 1 | Example 2 | Part 2 |
 | :- | :- | :- | :- | :- |
 | 1 | 24000 | 75622 | 45000 | 213159 |
+| 2 | 15 | 13052 | 12 | 13693 |
