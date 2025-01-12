@@ -1,0 +1,9 @@
+[package]
+name = "day-5"
+edition.workspace = true
+version.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+aoc-cli = { version = "0.1.0", path = "../aoc-cli" }
+regex = "1.11.1"

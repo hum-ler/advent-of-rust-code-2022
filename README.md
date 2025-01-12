@@ -22,3 +22,4 @@ cargo test -p day-<DAY_NUMBER> [<PART_NUMBER>]
 | 2 | 15 | 13052 | 12 | 13693 |
 | 3 | 157 | 8394 | 70 | 2413 |
 | 4 | 2 | 496 | 4 | 847 |
+| 5 | CMZ | JRVNHHCSJ | MCD | GNFBSBJLH |

@@ -21,7 +21,8 @@ pub fn get_part(default_input: &str) -> Result<Part> {
     let args = Args::parse();
 
     let input = read_to_string(args.input.unwrap_or(default_input.to_string()))?
-        .trim()
+        .trim_start_matches("\n")
+        .trim_end_matches("\n")
         .to_string();
 
     match args.part {
