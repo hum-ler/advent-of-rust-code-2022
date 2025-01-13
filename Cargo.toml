@@ -7,5 +7,5 @@ anyhow = "1.0.95"
 aoc-cli = { version = "0.1.0", path = "aoc-cli" }
 
 [workspace]
-members = ["aoc-cli", "day-1", "day-2", "day-3", "day-4", "day-5", "day-6"]
+members = ["aoc-cli", "day-1", "day-2", "day-3", "day-4", "day-5", "day-6", "day-7"]
 resolver = "2"
