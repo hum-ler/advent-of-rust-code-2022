@@ -1,0 +1,8 @@
+[package]
+name = "day-10"
+edition.workspace = true
+version.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+aoc-cli.workspace = true
