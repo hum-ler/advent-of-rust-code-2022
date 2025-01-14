@@ -68,7 +68,7 @@ impl FromStr for PacketData {
 
         let mut list_stack: Vec<PacketData> = Vec::new();
         let mut current_list = PacketData::List(Vec::new());
-        let mut last_byte = 0; // to check for double-digit integer 10
+        let mut prev_byte = 0u8; // to check for multi-digit integer
 
         // Get rid of the outermost [] before we begin.
         for byte in &s.as_bytes()[1..(s.len() - 1)] {
@@ -95,17 +95,25 @@ impl FromStr for PacketData {
                         return Err(anyhow!("Cannot extract inner list for input: {}", s));
                     }
                 }
+                x if x.is_ascii_digit() && prev_byte.is_ascii_digit() => {
+                    // Handle multi-digit integer.
+                    if let PacketData::List(mut inner_list) = current_list {
+                        let Some(PacketData::Integer(higher_order)) = inner_list.pop() else {
+                            return Err(anyhow!("Cannot pop inner list for input: {}", s));
+                        };
+
+                        // We are using u8, so there is risk of overflow here.
+                        inner_list.push(PacketData::Integer(higher_order * 10 + (x - b'0')));
+
+                        current_list = PacketData::List(inner_list);
+                    } else {
+                        return Err(anyhow!("Cannot extract inner list for input: {}", s));
+                    }
+                }
                 x if x.is_ascii_digit() => {
                     if let PacketData::List(mut inner_list) = current_list {
-                        if x == b'0' && last_byte == b'1' {
-                            // Oops... replace 1 with 10.
-                            inner_list.pop();
-                            inner_list.push(PacketData::Integer(10));
-                            current_list = PacketData::List(inner_list);
-                        } else {
-                            inner_list.push(PacketData::Integer(x - b'0'));
-                            current_list = PacketData::List(inner_list);
-                        }
+                        inner_list.push(PacketData::Integer(x - b'0'));
+                        current_list = PacketData::List(inner_list);
                     } else {
                         return Err(anyhow!("Cannot extract inner list for input: {}", s));
                     }
@@ -114,7 +122,7 @@ impl FromStr for PacketData {
                 x => return Err(anyhow!("Unhandled value ({}) for input: {}", x, s)),
             }
 
-            last_byte = *byte;
+            prev_byte = *byte;
         }
 
         Ok(current_list)
@@ -125,40 +133,40 @@ impl Ord for PacketData {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         match (self, other) {
             (PacketData::Integer(left), PacketData::Integer(right)) => left.cmp(right),
-            (PacketData::Integer(left), PacketData::List(right)) => {
+            (PacketData::Integer(left), right) => {
                 // Convert left to List and then compare.
-                PacketData::List(vec![PacketData::Integer(*left)])
-                    .cmp(&PacketData::List(right.clone()))
+                PacketData::List(vec![PacketData::Integer(*left)]).cmp(right)
             }
-            (PacketData::List(left), PacketData::Integer(right)) => {
+            (left, PacketData::Integer(right)) => {
                 // Convert right to List and then compare.
-                PacketData::List(left.clone())
-                    .cmp(&PacketData::List(vec![PacketData::Integer(*right)]))
+                left.cmp(&PacketData::List(vec![PacketData::Integer(*right)]))
             }
             (PacketData::List(left), PacketData::List(right)) => {
                 // Actual List comparison.
 
-                let mut left = left.clone();
-                let mut right = right.clone();
+                let mut left = &left[..];
+                let mut right = &right[..];
 
-                while !left.is_empty() && !right.is_empty() {
-                    let left_data = left.remove(0);
-                    let right_data = right.remove(0);
+                loop {
+                    match (left, right) {
+                        ([], []) => return Ordering::Equal,
+                        ([], _) => return Ordering::Less,
+                        (_, []) => return Ordering::Greater,
+                        _ => {
+                            let left_head = &left[0];
+                            let right_head = &right[0];
 
-                    let intermediate = left_data.cmp(&right_data);
-                    if intermediate != Ordering::Equal {
-                        return intermediate;
+                            let cmp = left_head.cmp(right_head);
+                            if cmp != Ordering::Equal {
+                                // Found the result.
+                                return cmp;
+                            } else {
+                                // Move on to the next element.
+                                left = &left[1..];
+                                right = &right[1..];
+                            }
+                        }
                     }
-                }
-
-                if left.is_empty() && right.is_empty() {
-                    return Ordering::Equal;
-                }
-
-                if left.is_empty() {
-                    Ordering::Less
-                } else {
-                    Ordering::Greater
                 }
             }
         }
