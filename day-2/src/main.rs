@@ -14,7 +14,7 @@ fn main() {
 
 fn part_1(input: String) -> Result<u32> {
     Ok(input
-        .split_terminator("\n")
+        .lines()
         .map(Round::from_str_part_1)
         .collect::<Result<Vec<_>>>()?
         .into_iter()
@@ -24,7 +24,7 @@ fn part_1(input: String) -> Result<u32> {
 
 fn part_2(input: String) -> Result<u32> {
     Ok(input
-        .split_terminator("\n")
+        .lines()
         .map(Round::from_str_part_2)
         .collect::<Result<Vec<_>>>()?
         .into_iter()

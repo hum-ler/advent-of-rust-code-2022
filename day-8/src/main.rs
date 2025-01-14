@@ -24,7 +24,7 @@ fn part_2(input: String) -> Result<usize> {
 
 fn convert_input_into_grid(input: String) -> Vec<Vec<u8>> {
     input
-        .split_terminator("\n")
+        .lines()
         .map(|line| line.bytes().map(|byte| byte - b'0').collect())
         .collect()
 }

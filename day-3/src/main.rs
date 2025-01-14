@@ -14,7 +14,7 @@ fn main() {
 
 fn part_1(input: String) -> Result<u32> {
     input
-        .split_terminator("\n")
+        .lines()
         .map(split_line_into_halves)
         .map(|pair| reduce_intersection(&pair))
         .collect::<Result<Vec<_>>>()?
@@ -25,7 +25,7 @@ fn part_1(input: String) -> Result<u32> {
 
 fn part_2(input: String) -> Result<u32> {
     input
-        .split_terminator("\n")
+        .lines()
         .map(|line| HashSet::from_iter(line.bytes()))
         .collect::<Vec<_>>()
         .chunks(3)

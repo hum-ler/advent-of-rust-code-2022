@@ -56,7 +56,7 @@ fn parse_input_into_dirs(input: String) -> Result<HashMap<String, Dir>> {
     let mut dirs: HashMap<String, Dir> = HashMap::new();
     dirs.entry(cwd.join("")).or_default();
 
-    for line in input.split_terminator("\n") {
+    for line in input.lines() {
         match line {
             "$ cd /" => cwd = vec![String::from("/")],
             "$ cd .." => {

@@ -77,7 +77,7 @@ fn convert_input_into_stacks_steps(input: String) -> Result<(Stacks, Steps)> {
 fn convert_input_into_stacks(input: &str) -> Result<Stacks> {
     let mut stacks: Vec<Vec<u8>> = Vec::new();
 
-    let mut lines = input.split_terminator("\n").collect::<Vec<_>>();
+    let mut lines = input.lines().collect::<Vec<_>>();
 
     // Get indices.
     let Some(indices) = lines.pop() else {
@@ -117,7 +117,7 @@ fn convert_input_into_steps(input: &str) -> Result<Steps> {
     let regex = Regex::new(r"^move (?<size>\d+) from (?<from>\d+) to (?<to>\d+)$")?;
 
     input
-        .split_terminator("\n")
+        .lines()
         .map(|line| {
             let Some(captures) = regex.captures(line) else {
                 return Err(anyhow!("Cannot capture from line: {}", line));

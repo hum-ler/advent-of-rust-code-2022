@@ -14,7 +14,7 @@ fn main() {
 
 fn part_1(input: String) -> Result<usize> {
     Ok(input
-        .split_terminator("\n")
+        .lines()
         .map(parse_line_into_ranges)
         .collect::<Result<Vec<_>>>()?
         .into_iter()
@@ -27,7 +27,7 @@ fn part_1(input: String) -> Result<usize> {
 
 fn part_2(input: String) -> Result<usize> {
     Ok(input
-        .split_terminator("\n")
+        .lines()
         .map(parse_line_into_ranges)
         .collect::<Result<Vec<_>>>()?
         .into_iter()

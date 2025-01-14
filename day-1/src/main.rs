@@ -15,7 +15,7 @@ fn part_1(input: String) -> Result<u32> {
         .split_terminator("\n\n")
         .map(|section| {
             Ok(section
-                .split_terminator("\n")
+                .lines()
                 .map(str::parse::<u32>)
                 .collect::<Result<Vec<_>, _>>()?
                 .into_iter()
@@ -32,7 +32,7 @@ fn part_2(input: String) -> Result<u32> {
         .split_terminator("\n\n")
         .map(|section| {
             Ok(section
-                .split_terminator("\n")
+                .lines()
                 .map(str::parse::<u32>)
                 .collect::<Result<Vec<_>, _>>()?
                 .into_iter()

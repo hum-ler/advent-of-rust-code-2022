@@ -18,7 +18,7 @@ fn part_1(input: String) -> Result<usize> {
     let mut trail: HashSet<Coord> = HashSet::new();
     trail.insert(coords[coords.len() - 1]);
 
-    input.split_terminator("\n").try_for_each(|line| {
+    input.lines().try_for_each(|line| {
         perform_move(line, &mut coords, &mut trail)?;
 
         Ok::<_, anyhow::Error>(())
@@ -33,7 +33,7 @@ fn part_2(input: String) -> Result<usize> {
     let mut trail: HashSet<Coord> = HashSet::new();
     trail.insert(coords[coords.len() - 1]);
 
-    input.split_terminator("\n").try_for_each(|line| {
+    input.lines().try_for_each(|line| {
         perform_move(line, &mut coords, &mut trail)?;
 
         Ok::<_, anyhow::Error>(())

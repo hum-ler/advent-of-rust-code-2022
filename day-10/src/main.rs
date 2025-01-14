@@ -34,7 +34,7 @@ fn parse_input_into_operands(input: String) -> Result<Vec<Option<i32>>> {
     // Init to 1. This also makes operands take effect only at the following cycle.
     let mut operands: Vec<Option<i32>> = vec![Some(1)];
 
-    for line in input.split_terminator("\n") {
+    for line in input.lines() {
         match line {
             "noop" => operands.push(None),
             addx if addx.starts_with("addx ") => {
