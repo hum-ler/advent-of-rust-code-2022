@@ -4,6 +4,7 @@ use std::{
 };
 
 use anyhow::{anyhow, Result};
+use itertools::Itertools;
 use pathfinding::prelude::dijkstra;
 use regex::Regex;
 
@@ -20,13 +21,20 @@ fn main() {
 fn part_1(input: String) -> Result<u16> {
     let valves = convert_input_to_valves(input)?;
 
-    Ok(max_pressure_released_from_aa(&valves))
+    max_pressure_released(&valves)
 }
 
 fn part_2(input: String) -> Result<u16> {
     let valves = convert_input_to_valves(input)?;
 
-    Ok(max_pressure_released_from_aa_by_duo(&valves))
+    max_pressure_released_with_rerun(&valves)
+}
+
+#[allow(dead_code)]
+fn example_2(input: String) -> Result<u16> {
+    let valves = convert_input_to_valves(input)?;
+
+    max_pressure_released_by_splitting(&valves)
 }
 
 struct Valve {
@@ -79,7 +87,7 @@ struct Trackables {
     unopened: HashSet<u16>,
 }
 
-fn max_pressure_released_from_aa(valves: &HashMap<u16, Valve>) -> u16 {
+fn max_pressure_released(valves: &HashMap<u16, Valve>) -> Result<u16> {
     // We always regard valves with 0 rate as opened. Note that AA is 0 rate in both the example and
     // the input data.
     let trackables = Trackables {
@@ -116,13 +124,15 @@ fn max_pressure_released_from_aa(valves: &HashMap<u16, Valve>) -> u16 {
         valves,
         &mut shortest_path_cache,
     )
-    .pressure_released
+    .map(|trackables| trackables.pressure_released)
 }
 
-fn max_pressure_released_from_aa_by_duo(valves: &HashMap<u16, Valve>) -> u16 {
+fn max_pressure_released_with_rerun(valves: &HashMap<u16, Valve>) -> Result<u16> {
     // In 26 minutes, there will be a set of unopened valves left over in one optimized run. We can
     // simply re-run another 26 minutes to mop up those unopened valves. Unfortunately this strategy
     // does not work for the example, as the first run will open all valves within 26 minutes.
+
+    // First run
 
     let trackables = Trackables {
         time_left: 26,
@@ -157,7 +167,9 @@ fn max_pressure_released_from_aa_by_duo(valves: &HashMap<u16, Valve>) -> u16 {
         trackables,
         valves,
         &mut shortest_path_cache,
-    );
+    )?;
+
+    // Second run
 
     let trackables = Trackables {
         time_left: 26,
@@ -172,9 +184,90 @@ fn max_pressure_released_from_aa_by_duo(valves: &HashMap<u16, Valve>) -> u16 {
         trackables,
         valves,
         &mut shortest_path_cache,
-    );
+    )?;
 
-    first_path.pressure_released + second_path.pressure_released
+    Ok(first_path.pressure_released + second_path.pressure_released)
+}
+
+fn max_pressure_released_by_splitting(valves: &HashMap<u16, Valve>) -> Result<u16> {
+    // The example should be small enough to brute force splitting the unopened valves into halves.
+
+    let unopened = valves
+        .values()
+        .filter_map(|valve| {
+            if valve.rate != 0 {
+                Some(valve.id)
+            } else {
+                None
+            }
+        })
+        .collect::<HashSet<_>>();
+
+    unopened
+        .iter()
+        .combinations(unopened.len() / 2)
+        .map(|first_half| {
+            // Prepare the halves.
+            let first_half = HashSet::from_iter(first_half.into_iter().copied());
+            let second_half = unopened
+                .difference(&first_half)
+                .copied()
+                .collect::<HashSet<_>>();
+
+            // First half
+
+            let trackables = Trackables {
+                time_left: 26,
+                pressure_released: 0,
+                flow_rate: 0,
+                opened: valves
+                    .values()
+                    .map(|valve| valve.id)
+                    .collect::<HashSet<_>>()
+                    .difference(&first_half)
+                    .copied()
+                    .collect::<HashSet<_>>(),
+                unopened: first_half,
+            };
+
+            let mut shortest_path_cache: HashMap<(u16, u16), Vec<u16>> = HashMap::new();
+
+            let first_half = find_max_pressure_released(
+                label_to_id(&String::from("AA")),
+                trackables,
+                valves,
+                &mut shortest_path_cache,
+            )?;
+
+            // Second half
+
+            let trackables = Trackables {
+                time_left: 26,
+                pressure_released: 0,
+                flow_rate: 0,
+                opened: valves
+                    .values()
+                    .map(|valve| valve.id)
+                    .collect::<HashSet<_>>()
+                    .difference(&second_half)
+                    .copied()
+                    .collect::<HashSet<_>>(),
+                unopened: second_half,
+            };
+
+            let second_half = find_max_pressure_released(
+                label_to_id(&String::from("AA")),
+                trackables,
+                valves,
+                &mut shortest_path_cache,
+            )?;
+
+            Ok(first_half.pressure_released + second_half.pressure_released)
+        })
+        .collect::<Result<Vec<_>>>()?
+        .into_iter()
+        .max()
+        .ok_or(anyhow!("Cannot determine max from splits iters"))
 }
 
 fn find_max_pressure_released(
@@ -182,37 +275,36 @@ fn find_max_pressure_released(
     mut trackables: Trackables,
     valves: &HashMap<u16, Valve>,
     shortest_path_cache: &mut HashMap<(u16, u16), Vec<u16>>,
-) -> Trackables {
+) -> Result<Trackables> {
     if trackables.time_left == 0 {
-        return trackables;
+        return Ok(trackables);
     }
 
     if trackables.time_left == 1 {
         trackables.time_left = 0;
         trackables.pressure_released += trackables.flow_rate;
-        return trackables;
+        return Ok(trackables);
     }
 
     if trackables.opened.len() == valves.len() {
         trackables.pressure_released += trackables.time_left * trackables.flow_rate;
         trackables.time_left = 0;
-        return trackables;
+        return Ok(trackables);
     }
 
     trackables
         .unopened
         .iter()
         .map(|end| {
-            let Ok(trackables) =
-                traverse(start, *end, trackables.clone(), valves, shortest_path_cache)
-            else {
-                return Trackables::default();
-            };
+            let trackables =
+                traverse(start, *end, trackables.clone(), valves, shortest_path_cache)?;
 
             find_max_pressure_released(*end, trackables, valves, shortest_path_cache)
         })
+        .collect::<Result<Vec<_>>>()?
+        .into_iter()
         .max_by_key(|trackables| trackables.pressure_released)
-        .unwrap_or_default()
+        .ok_or(anyhow!("Cannot determine max from trackables"))
 }
 
 /// Travels by shortest path from start valve to end valve (and opening it), tracking the stats.
@@ -318,10 +410,9 @@ Valve JJ has flow rate=21; tunnel leads to valve II
         Ok(())
     }
 
-    #[ignore = "FIXME: the strategy for part 2 does not apply to the example input."]
     #[test]
     fn example_2() -> Result<()> {
-        assert_eq!(part_2(EXAMPLE_INPUT.trim().to_string())?, 1707);
+        assert_eq!(super::example_2(EXAMPLE_INPUT.trim().to_string())?, 1707);
 
         Ok(())
     }
