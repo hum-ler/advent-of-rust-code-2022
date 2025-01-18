@@ -135,6 +135,7 @@ fn part_2(input: String) -> Result<usize> {
             fingerprint_at_2000 = fingerprint_top(&chamber);
             fingerprinted_height = Some(chamber.height);
         } else if index > 2000
+            && index % 5 == 0
             && final_rock.is_none()
             && fingerprint_at_2000 == fingerprint_top(&chamber)
         {
