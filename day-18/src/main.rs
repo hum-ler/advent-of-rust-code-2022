@@ -53,7 +53,7 @@ fn adjacent_pairs(coords: &HashSet<Coord>) -> usize {
         .count()
 }
 
-fn bounding_cube(coords: &HashSet<Coord>) -> (Coord, Coord) {
+fn bounding_box(coords: &HashSet<Coord>) -> (Coord, Coord) {
     coords.iter().fold(
         ((u8::MAX, u8::MAX, u8::MAX), (0, 0, 0)),
         |mut acc, coord| {
@@ -82,22 +82,22 @@ fn bounding_cube(coords: &HashSet<Coord>) -> (Coord, Coord) {
     )
 }
 
-/// Expands the bounding cube by 1.
-fn expand_bounding_cube(bounding_cube: (Coord, Coord)) -> Result<(Coord, Coord)> {
-    if bounding_cube.0 .0 == 0 || bounding_cube.0 .1 == 0 || bounding_cube.0 .2 == 0 {
+/// Expands the bounding box by 1.
+fn expand_bounding_box(bounding_box: (Coord, Coord)) -> Result<(Coord, Coord)> {
+    if bounding_box.0 .0 == 0 || bounding_box.0 .1 == 0 || bounding_box.0 .2 == 0 {
         return Err(anyhow!("Lower bound contains 0"));
     }
 
     Ok((
         (
-            bounding_cube.0 .0 - 1,
-            bounding_cube.0 .1 - 1,
-            bounding_cube.0 .2 - 1,
+            bounding_box.0 .0 - 1,
+            bounding_box.0 .1 - 1,
+            bounding_box.0 .2 - 1,
         ),
         (
-            bounding_cube.1 .0 + 1,
-            bounding_cube.1 .1 + 1,
-            bounding_cube.1 .2 + 1,
+            bounding_box.1 .0 + 1,
+            bounding_box.1 .1 + 1,
+            bounding_box.1 .2 + 1,
         ),
     ))
 }
@@ -120,7 +120,7 @@ fn count_surfaces(coords: &HashSet<Coord>) -> Result<usize> {
     let mut coords = coords.clone();
 
     // Shift all the coords if the 0-planes are not clear.
-    let (lower_bound, _) = bounding_cube(&coords);
+    let (lower_bound, _) = bounding_box(&coords);
     let translation = (
         (lower_bound.0 != 1) as u8,
         (lower_bound.1 != 1) as u8,
@@ -130,7 +130,7 @@ fn count_surfaces(coords: &HashSet<Coord>) -> Result<usize> {
         coords = translate(&coords, translation);
     }
 
-    let (lower_bound, upper_bound) = expand_bounding_cube(bounding_cube(&coords))?;
+    let (lower_bound, upper_bound) = expand_bounding_box(bounding_box(&coords))?;
 
     let mut done = HashSet::new();
     Ok(flood_search(
