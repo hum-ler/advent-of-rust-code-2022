@@ -1,0 +1,9 @@
+[package]
+name = "day-24"
+edition.workspace = true
+version.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+aoc-cli.workspace = true
+pathfinding = "4.13.1"
