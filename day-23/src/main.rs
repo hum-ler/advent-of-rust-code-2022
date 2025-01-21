@@ -79,7 +79,8 @@ fn conduct_round(round: usize, mut elves: HashSet<Coord>) -> HashSet<Coord> {
                         proposals
                             .entry((row - 1, col))
                             .and_modify(|proposers| proposers.push((row, col)))
-                            .or_insert(vec![(row, col)]);
+                            .or_default()
+                            .push((row, col));
 
                         break;
                     }
@@ -91,7 +92,8 @@ fn conduct_round(round: usize, mut elves: HashSet<Coord>) -> HashSet<Coord> {
                         proposals
                             .entry((row + 1, col))
                             .and_modify(|proposers| proposers.push((row, col)))
-                            .or_insert(vec![(row, col)]);
+                            .or_default()
+                            .push((row, col));
 
                         break;
                     }
@@ -103,7 +105,8 @@ fn conduct_round(round: usize, mut elves: HashSet<Coord>) -> HashSet<Coord> {
                         proposals
                             .entry((row, col - 1))
                             .and_modify(|proposers| proposers.push((row, col)))
-                            .or_insert(vec![(row, col)]);
+                            .or_default()
+                            .push((row, col));
 
                         break;
                     }
@@ -115,7 +118,8 @@ fn conduct_round(round: usize, mut elves: HashSet<Coord>) -> HashSet<Coord> {
                         proposals
                             .entry((row, col + 1))
                             .and_modify(|proposers| proposers.push((row, col)))
-                            .or_insert(vec![(row, col)]);
+                            .or_default()
+                            .push((row, col));
 
                         break;
                     }

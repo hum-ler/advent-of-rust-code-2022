@@ -25,15 +25,19 @@ fn part_1(input: String) -> Result<usize> {
         }
     }
 
+    // Start and end are outside of the grid.
+    let start = 9998;
+    let end = 9999;
+
     let Some((_, len)) = dijkstra(
-        &(0, 0, 1),
-        |node| successors(node, rows, cols, &safety_checks),
-        |node| node.0 == rows - 1 && node.1 == cols - 1,
+        &(start, start, 0),
+        |node| successors(node, rows, cols, &safety_checks, start, end),
+        |node| node.0 == end && node.1 == end,
     ) else {
         return Err(anyhow!("Cannot find shortest path"));
     };
 
-    Ok(len + 2) // add the steps into- and out of the grid
+    Ok(len)
 }
 
 fn part_2(input: String) -> Result<usize> {
@@ -50,7 +54,7 @@ fn part_2(input: String) -> Result<usize> {
         }
     }
 
-    // Workaround the fact the successors() do not handle reentering exits.
+    // Start and end are outside of the grid.
     let start = 9998;
     let end = 9999;
 
@@ -58,7 +62,7 @@ fn part_2(input: String) -> Result<usize> {
 
     let Some((_, len)) = dijkstra(
         &(start, start, total_len),
-        |node| successors_with_exits(node, rows, cols, &safety_checks, start, end),
+        |node| successors(node, rows, cols, &safety_checks, start, end),
         |node| node.0 == end && node.1 == end,
     ) else {
         return Err(anyhow!("Cannot find first shortest path to goal"));
@@ -68,7 +72,7 @@ fn part_2(input: String) -> Result<usize> {
 
     let Some((_, len)) = dijkstra(
         &(end, end, total_len),
-        |node| successors_with_exits(node, rows, cols, &safety_checks, start, end),
+        |node| successors(node, rows, cols, &safety_checks, start, end),
         |node| node.0 == start && node.1 == start,
     ) else {
         return Err(anyhow!("Cannot find shortest path back to start"));
@@ -78,7 +82,7 @@ fn part_2(input: String) -> Result<usize> {
 
     let Some((_, len)) = dijkstra(
         &(start, start, total_len),
-        |node| successors_with_exits(node, rows, cols, &safety_checks, start, end),
+        |node| successors(node, rows, cols, &safety_checks, start, end),
         |node| node.0 == end && node.1 == end,
     ) else {
         return Err(anyhow!("Cannot find second shortest path to goal"));
@@ -168,45 +172,6 @@ fn successors(
     rows: usize,
     cols: usize,
     safety_checks: &SafetyChecks,
-) -> Vec<(Node, usize)> {
-    let &(row, col, step) = node;
-
-    let mut nodes = Vec::new();
-
-    // n
-    if row > 0 && safety_checks[row - 1][col](step + 1) {
-        nodes.push(((row - 1, col, step + 1), 1));
-    }
-
-    // e
-    if col < cols - 1 && safety_checks[row][col + 1](step + 1) {
-        nodes.push(((row, col + 1, step + 1), 1));
-    }
-
-    // s
-    if row < rows - 1 && safety_checks[row + 1][col](step + 1) {
-        nodes.push(((row + 1, col, step + 1), 1));
-    }
-
-    // w
-    if col > 0 && safety_checks[row][col - 1](step + 1) {
-        nodes.push(((row, col - 1, step + 1), 1));
-    }
-
-    // Wait at the same position.
-    if safety_checks[row][col](step + 1) {
-        nodes.push(((row, col, step + 1), 1));
-    }
-
-    nodes
-}
-
-/// successors function with workaround for exits in part 2.
-fn successors_with_exits(
-    node: &Node,
-    rows: usize,
-    cols: usize,
-    safety_checks: &SafetyChecks,
     start_index: usize,
     end_index: usize,
 ) -> Vec<(Node, usize)> {
@@ -214,7 +179,7 @@ fn successors_with_exits(
 
     let mut nodes = Vec::new();
 
-    // Workaround for part 2.
+    // Start index is outside of the grid.
     if row == start_index && col == start_index {
         if safety_checks[0][0](step + 1) {
             nodes.push(((0, 0, step + 1), 1));
@@ -225,7 +190,7 @@ fn successors_with_exits(
         return nodes;
     }
 
-    // Workaround for part 2.
+    // End index is outside of the grid.
     if row == end_index && col == end_index {
         if safety_checks[rows - 1][cols - 1](step + 1) {
             nodes.push(((rows - 1, cols - 1, step + 1), 1));
@@ -261,12 +226,12 @@ fn successors_with_exits(
         nodes.push(((row, col, step + 1), 1));
     }
 
-    // Workaround for part 2.
+    // Start index is outside of the grid and always safe.
     if row == 0 && col == 0 {
         nodes.push(((start_index, start_index, step + 1), 1));
     }
 
-    // Workaround for part 2.
+    // End index is outside of the grid and always safe.
     if row == rows - 1 && col == cols - 1 {
         nodes.push(((end_index, end_index, step + 1), 1));
     }

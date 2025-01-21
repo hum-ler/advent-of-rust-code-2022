@@ -21,11 +21,15 @@ fn part_1(input: String) -> Result<usize> {
 }
 
 fn part_2(input: String) -> Result<usize> {
-    let mut cube = Cube::try_from(input)?;
+    let mut cube = if !input.is_empty() && input.len() < 200 {
+        ExampleCube::build_cube(input)
+    } else {
+        InputCube::build_cube(input)
+    }?;
 
     cube.run()?;
 
-    let (row, col) = cube.abs_pos()?;
+    let (row, col) = cube.abs_pos();
 
     Ok((row + 1) * 1000 + (col + 1) * 4 + cube.abs_facing())
 }
@@ -238,58 +242,22 @@ fn parse_movements(input: &str) -> Result<Vec<Movement>> {
     Ok(movements)
 }
 
-// (square_index, row, col, facing)
-type Position = (usize, usize, usize, usize);
+/// (square_index, row, col, facing)
+type Pos = (usize, usize, usize, usize);
 
-type Transition = Box<dyn Fn(Position) -> Position>;
+type Transition = Box<dyn Fn(Pos) -> Pos>;
 
 type Square = [Transition; 4];
 
+#[allow(dead_code)]
 struct Cube {
-    position: Position,
+    pos: Pos,
     square_size: usize,
     squares: [Square; 6],
+    rel_pos_to_abs_pos: Box<dyn Fn(usize, usize, usize) -> (usize, usize)>,
+    abs_pos_to_rel_pos: Box<dyn Fn(usize, usize) -> (usize, usize, usize)>,
     obstacles: HashSet<(usize, usize, usize)>,
     movements: Vec<Movement>,
-}
-
-impl TryFrom<String> for Cube {
-    type Error = anyhow::Error;
-
-    fn try_from(value: String) -> std::result::Result<Self, Self::Error> {
-        let Some((squares_part, movements_part)) = value.split_once("\n\n") else {
-            return Err(anyhow!("Cannot split value: {}", value));
-        };
-
-        let lines = squares_part.lines().collect::<Vec<_>>();
-        let first_line_len = lines.first().map_or(0, |line| line.len());
-        if first_line_len == 0 {
-            return Err(anyhow!("Invalid input"));
-        }
-
-        let position = (0, 0, 0, 0);
-        let square_size = if first_line_len % 50 == 0 { 50 } else { 4 };
-        let squares = Self::generate_squares(square_size)?;
-
-        let mut obstacles = HashSet::new();
-        for (row, line) in squares_part.lines().enumerate() {
-            line.match_indices("#").try_for_each(|(col, _)| {
-                obstacles.insert(Self::abs_pos_to_rel_pos(square_size, row, col)?);
-
-                Ok::<_, anyhow::Error>(())
-            })?;
-        }
-
-        let movements = parse_movements(movements_part)?;
-
-        Ok(Cube {
-            position,
-            square_size,
-            squares,
-            obstacles,
-            movements,
-        })
-    }
 }
 
 impl Cube {
@@ -310,96 +278,76 @@ impl Cube {
         let upper_bound = self.square_size - 1;
 
         for _ in 0..steps {
-            match self.position.3 {
+            match self.pos.3 {
                 // n
                 3 => {
-                    let next_position = if self.position.1 == lower_bound {
-                        self.squares[self.position.0][3](self.position)
+                    let next_pos = if self.pos.1 == lower_bound {
+                        self.squares[self.pos.0][3](self.pos)
                     } else {
-                        (
-                            self.position.0,
-                            self.position.1 - 1,
-                            self.position.2,
-                            self.position.3,
-                        )
+                        (self.pos.0, self.pos.1 - 1, self.pos.2, self.pos.3)
                     };
 
                     if self
                         .obstacles
-                        .contains(&(next_position.0, next_position.1, next_position.2))
+                        .contains(&(next_pos.0, next_pos.1, next_pos.2))
                     {
                         break;
                     } else {
-                        self.position = next_position;
+                        self.pos = next_pos;
                     }
                 }
 
                 // e
                 0 => {
-                    let next_position = if self.position.2 == upper_bound {
-                        self.squares[self.position.0][0](self.position)
+                    let next_pos = if self.pos.2 == upper_bound {
+                        self.squares[self.pos.0][0](self.pos)
                     } else {
-                        (
-                            self.position.0,
-                            self.position.1,
-                            self.position.2 + 1,
-                            self.position.3,
-                        )
+                        (self.pos.0, self.pos.1, self.pos.2 + 1, self.pos.3)
                     };
 
                     if self
                         .obstacles
-                        .contains(&(next_position.0, next_position.1, next_position.2))
+                        .contains(&(next_pos.0, next_pos.1, next_pos.2))
                     {
                         break;
                     } else {
-                        self.position = next_position;
+                        self.pos = next_pos;
                     }
                 }
 
                 // s
                 1 => {
-                    let next_position = if self.position.1 == upper_bound {
-                        self.squares[self.position.0][1](self.position)
+                    let next_pos = if self.pos.1 == upper_bound {
+                        self.squares[self.pos.0][1](self.pos)
                     } else {
-                        (
-                            self.position.0,
-                            self.position.1 + 1,
-                            self.position.2,
-                            self.position.3,
-                        )
+                        (self.pos.0, self.pos.1 + 1, self.pos.2, self.pos.3)
                     };
 
                     if self
                         .obstacles
-                        .contains(&(next_position.0, next_position.1, next_position.2))
+                        .contains(&(next_pos.0, next_pos.1, next_pos.2))
                     {
                         break;
                     } else {
-                        self.position = next_position;
+                        self.pos = next_pos;
                     }
                 }
 
                 // w
                 2 => {
-                    let next_position = if self.position.2 == lower_bound {
-                        self.squares[self.position.0][2](self.position)
+                    let next_pos = if self.pos.2 == lower_bound {
+                        self.squares[self.pos.0][2](self.pos)
                     } else {
-                        (
-                            self.position.0,
-                            self.position.1,
-                            self.position.2 - 1,
-                            self.position.3,
-                        )
+                        (self.pos.0, self.pos.1, self.pos.2 - 1, self.pos.3)
                     };
 
                     if self
                         .obstacles
-                        .contains(&(next_position.0, next_position.1, next_position.2))
+                        .contains(&(next_pos.0, next_pos.1, next_pos.2))
                     {
                         break;
                     } else {
-                        self.position = next_position;
+                        self.pos = next_pos;
                     }
                 }
                 x => return Err(anyhow!("Invalid facing: {}", x)),
@@ -410,185 +358,257 @@ impl Cube {
     }
 
     fn turn_left(&mut self) {
-        self.position.3 = self.position.3.wrapping_sub(1) % 4;
+        self.pos.3 = self.pos.3.wrapping_sub(1) % 4;
     }
 
     fn turn_right(&mut self) {
-        self.position.3 = (self.position.3 + 1) % 4;
+        self.pos.3 = (self.pos.3 + 1) % 4;
     }
 
-    fn abs_pos(&self) -> Result<(usize, usize)> {
-        Self::rel_pos_to_abs_pos(
-            self.square_size,
-            self.position.0,
-            self.position.1,
-            self.position.2,
-        )
+    fn abs_pos(&self) -> (usize, usize) {
+        (self.rel_pos_to_abs_pos)(self.pos.0, self.pos.1, self.pos.2)
     }
 
     fn abs_facing(&self) -> usize {
-        self.position.3
+        self.pos.3
     }
+}
 
-    fn abs_pos_to_rel_pos(
-        square_size: usize,
-        row: usize,
-        col: usize,
-    ) -> Result<(usize, usize, usize)> {
-        // Unfortunately, the example and input cubes have different shapes.
+trait CubeBuilder {
+    fn build_cube(input: String) -> Result<Cube> {
+        let Some((squares_part, movements_part)) = input.split_once("\n\n") else {
+            return Err(anyhow!("Cannot split input: {}", input));
+        };
 
-        match square_size {
-            50 => Ok(match (row, col) {
-                (row, col) if row < 50 && col < 100 => (0, row, col - 50),
-                (row, col) if row < 50 => (1, row, col - 100),
-                (row, col) if row < 100 => (2, row - 50, col - 50),
-                (row, col) if row < 150 && col < 50 => (3, row - 100, col),
-                (row, col) if row < 150 => (4, row - 100, col - 50),
-                (row, col) => (5, row - 150, col),
-            }),
-            4 => Ok(match (row, col) {
-                (row, col) if row < 4 => (0, row, col - 8),
-                (row, col) if row < 8 && col < 4 => (1, row - 4, col),
-                (row, col) if row < 8 && col < 8 => (2, row - 4, col - 4),
-                (row, col) if row < 8 => (3, row - 4, col - 8),
-                (row, col) if col < 12 => (4, row - 8, col - 8),
-                (row, col) => (5, row - 8, col - 12),
-            }),
-            x => Err(anyhow!("Invalid square size: {}", x)),
+        let pos = (0, 0, 0, 0);
+
+        let square_size = Self::square_size(squares_part)?;
+
+        let squares = Self::build_squares(square_size);
+        let rel_pos_to_abs_pos = Self::build_rel_pos_to_abs_pos(square_size);
+        let abs_pos_to_rel_pos = Self::build_abs_pos_to_rel_pos(square_size);
+
+        let mut obstacles = HashSet::new();
+        for (row, line) in squares_part.lines().enumerate() {
+            line.match_indices("#").for_each(|(col, _)| {
+                obstacles.insert(abs_pos_to_rel_pos(row, col));
+            });
         }
+
+        let movements = parse_movements(movements_part)?;
+
+        Ok(Cube {
+            pos,
+            square_size,
+            squares,
+            rel_pos_to_abs_pos,
+            abs_pos_to_rel_pos,
+            obstacles,
+            movements,
+        })
     }
 
-    fn rel_pos_to_abs_pos(
+    fn square_size(input: &str) -> Result<usize>;
+
+    fn build_rel_pos_to_abs_pos(
         square_size: usize,
-        square_index: usize,
-        row: usize,
-        col: usize,
-    ) -> Result<(usize, usize)> {
-        // Unfortunately, the example and input cubes have different shapes.
+    ) -> Box<dyn Fn(usize, usize, usize) -> (usize, usize)>;
 
-        match square_size {
-            50 => Ok(match square_index {
-                0 => (row, col + 50),
-                1 => (row, col + 100),
-                2 => (row + 50, col + 50),
-                3 => (row + 100, col),
-                4 => (row + 100, col + 50),
-                5 => (row + 150, col),
-                x => return Err(anyhow!("Invalid square index: {}", x)),
-            }),
-            4 => Ok(match square_index {
-                0 => (row, col + 8),
-                1 => (row + 4, col),
-                2 => (row + 4, col + 4),
-                3 => (row + 4, col + 8),
-                4 => (row + 8, col + 8),
-                5 => (row + 8, col + 12),
-                x => return Err(anyhow!("Invalid square index: {}", x)),
-            }),
-            x => Err(anyhow!("Invalid square size: {}", x)),
-        }
+    fn build_abs_pos_to_rel_pos(
+        square_size: usize,
+    ) -> Box<dyn Fn(usize, usize) -> (usize, usize, usize)>;
+
+    fn build_squares(square_size: usize) -> [Square; 6];
+}
+
+struct ExampleCube {}
+
+impl CubeBuilder for ExampleCube {
+    // Shape:         Square:   Bounds:
+    //       [0]         3         L
+    // [1][2][3]      2 [ ] 0   L [ ] U
+    //       [4][5]      1         U
+
+    fn square_size(input: &str) -> Result<usize> {
+        let lines = input.lines().take(1).collect::<Vec<_>>();
+        let Some(first_line) = lines.first() else {
+            return Err(anyhow!("Cannot get first line from input: {}", input));
+        };
+        let Some(lower_bound) = first_line.find(|c: char| c.is_ascii_punctuation()) else {
+            return Err(anyhow!("Invalid first line: {}", first_line));
+        };
+
+        Ok(first_line.len() - lower_bound)
     }
 
-    fn generate_squares(square_size: usize) -> Result<[Square; 6]> {
-        // Unfortunately, the example and input cubes have different shapes.
+    fn build_rel_pos_to_abs_pos(
+        square_size: usize,
+    ) -> Box<dyn Fn(usize, usize, usize) -> (usize, usize)> {
+        Box::new(move |square_index, row, col| match square_index {
+            0 => (row, col + square_size * 2),
+            1 => (row + square_size, col),
+            2 => (row + square_size, col + square_size),
+            3 => (row + square_size, col + square_size * 2),
+            4 => (row + square_size * 2, col + square_size * 2),
+            5 => (row + square_size * 2, col + square_size * 3),
+            _ => unreachable!(),
+        })
+    }
 
-        // Cube (50):  Square:   Bounds:
-        //    [0][1]      3         L
-        //    [2]      2 [ ] 0   L [ ] U
-        // [3][4]         1         U
-        // [5]
-        //
-        // Cube (4):
-        //       [0]
-        // [1][2][3]
-        //       [4][5]
+    fn build_abs_pos_to_rel_pos(
+        square_size: usize,
+    ) -> Box<dyn Fn(usize, usize) -> (usize, usize, usize)> {
+        Box::new(move |row, col| match (row, col) {
+            (row, col) if row < square_size => (0, row, col - square_size * 2),
+            (row, col) if row < square_size * 2 && col < square_size => (1, row - square_size, col),
+            (row, col) if row < square_size * 2 && col < square_size * 2 => {
+                (2, row - square_size, col - square_size)
+            }
+            (row, col) if row < square_size * 2 => (3, row - square_size, col - square_size * 2),
+            (row, col) if col < square_size * 3 => {
+                (4, row - square_size * 2, col - square_size * 2)
+            }
+            (row, col) => (5, row - square_size * 2, col - square_size * 3),
+        })
+    }
 
+    fn build_squares(square_size: usize) -> [Square; 6] {
         let lower_bound = 0;
         let upper_bound = square_size - 1;
 
-        match square_size {
-            50 => {
-                let square_0: Square = [
-                    Box::new(move |pos| (1, pos.1, 0, 0)),
-                    Box::new(move |pos| (2, lower_bound, pos.2, 1)),
-                    Box::new(move |pos| (3, upper_bound - pos.1, lower_bound, 0)),
-                    Box::new(move |pos| (5, pos.2, lower_bound, 0)),
-                ];
-                let square_1: Square = [
-                    Box::new(move |pos| (4, upper_bound - pos.1, upper_bound, 2)),
-                    Box::new(move |pos| (2, pos.2, upper_bound, 2)),
-                    Box::new(move |pos| (0, pos.1, upper_bound, 2)),
-                    Box::new(move |pos| (5, upper_bound, pos.2, 3)),
-                ];
-                let square_2: Square = [
-                    Box::new(move |pos| (1, upper_bound, pos.1, 3)),
-                    Box::new(move |pos| (4, lower_bound, pos.2, 1)),
-                    Box::new(move |pos| (3, lower_bound, pos.1, 1)),
-                    Box::new(move |pos| (0, upper_bound, pos.2, 3)),
-                ];
-                let square_3: Square = [
-                    Box::new(move |pos| (4, pos.1, lower_bound, 0)),
-                    Box::new(move |pos| (5, lower_bound, pos.2, 1)),
-                    Box::new(move |pos| (0, upper_bound - pos.1, lower_bound, 0)),
-                    Box::new(move |pos| (2, pos.2, lower_bound, 0)),
-                ];
-                let square_4: Square = [
-                    Box::new(move |pos| (1, upper_bound - pos.1, upper_bound, 2)),
-                    Box::new(move |pos| (5, pos.2, upper_bound, 2)),
-                    Box::new(move |pos| (3, pos.1, upper_bound, 2)),
-                    Box::new(move |pos| (2, upper_bound, pos.2, 3)),
-                ];
-                let square_5: Square = [
-                    Box::new(move |pos| (4, upper_bound, pos.1, 3)),
-                    Box::new(move |pos| (1, lower_bound, pos.2, 1)),
-                    Box::new(move |pos| (0, lower_bound, pos.1, 1)),
-                    Box::new(move |pos| (3, upper_bound, pos.2, 3)),
-                ];
+        let square_0: Square = [
+            Box::new(move |pos| (5, upper_bound - pos.1, upper_bound, 2)),
+            Box::new(move |pos| (3, lower_bound, pos.2, 1)),
+            Box::new(move |pos| (2, lower_bound, pos.1, 1)),
+            Box::new(move |pos| (1, lower_bound, upper_bound - pos.2, 1)),
+        ];
+        let square_1: Square = [
+            Box::new(move |pos| (2, pos.1, lower_bound, 0)),
+            Box::new(move |pos| (4, upper_bound, upper_bound - pos.2, 3)),
+            Box::new(move |pos| (5, upper_bound, upper_bound - pos.1, 3)),
+            Box::new(move |pos| (0, lower_bound, upper_bound - pos.2, 1)),
+        ];
+        let square_2: Square = [
+            Box::new(move |pos| (3, pos.1, lower_bound, 0)),
+            Box::new(move |pos| (4, upper_bound - pos.2, lower_bound, 0)),
+            Box::new(move |pos| (1, pos.1, upper_bound, 2)),
+            Box::new(move |pos| (0, pos.2, lower_bound, 0)),
+        ];
+        let square_3: Square = [
+            Box::new(move |pos| (5, lower_bound, upper_bound - pos.1, 1)),
+            Box::new(move |pos| (4, lower_bound, pos.2, 1)),
+            Box::new(move |pos| (2, pos.1, upper_bound, 2)),
+            Box::new(move |pos| (0, upper_bound, pos.2, 3)),
+        ];
+        let square_4: Square = [
+            Box::new(move |pos| (5, pos.1, lower_bound, 0)),
+            Box::new(move |pos| (1, upper_bound, upper_bound - pos.2, 3)),
+            Box::new(move |pos| (2, upper_bound, upper_bound - pos.1, 3)),
+            Box::new(move |pos| (3, upper_bound, pos.2, 3)),
+        ];
+        let square_5: Square = [
+            Box::new(move |pos| (0, upper_bound - pos.1, upper_bound, 2)),
+            Box::new(move |pos| (1, upper_bound - pos.2, lower_bound, 0)),
+            Box::new(move |pos| (4, pos.1, upper_bound, 2)),
+            Box::new(move |pos| (3, upper_bound - pos.2, upper_bound, 2)),
+        ];
 
-                Ok([square_0, square_1, square_2, square_3, square_4, square_5])
-            }
-            4 => {
-                let square_0: Square = [
-                    Box::new(move |pos| (5, upper_bound - pos.1, upper_bound, 2)),
-                    Box::new(move |pos| (3, lower_bound, pos.2, 1)),
-                    Box::new(move |pos| (2, lower_bound, pos.1, 1)),
-                    Box::new(move |pos| (1, lower_bound, upper_bound - pos.2, 1)),
-                ];
-                let square_1: Square = [
-                    Box::new(move |pos| (2, pos.1, lower_bound, 0)),
-                    Box::new(move |pos| (4, upper_bound, upper_bound - pos.2, 3)),
-                    Box::new(move |pos| (5, upper_bound, upper_bound - pos.1, 3)),
-                    Box::new(move |pos| (0, lower_bound, upper_bound - pos.2, 1)),
-                ];
-                let square_2: Square = [
-                    Box::new(move |pos| (3, pos.1, lower_bound, 0)),
-                    Box::new(move |pos| (4, upper_bound - pos.2, lower_bound, 0)),
-                    Box::new(move |pos| (1, pos.1, upper_bound, 2)),
-                    Box::new(move |pos| (0, pos.2, lower_bound, 0)),
-                ];
-                let square_3: Square = [
-                    Box::new(move |pos| (5, lower_bound, upper_bound - pos.1, 1)),
-                    Box::new(move |pos| (4, lower_bound, pos.2, 1)),
-                    Box::new(move |pos| (2, pos.1, upper_bound, 2)),
-                    Box::new(move |pos| (0, upper_bound, pos.2, 3)),
-                ];
-                let square_4: Square = [
-                    Box::new(move |pos| (5, pos.1, lower_bound, 0)),
-                    Box::new(move |pos| (1, upper_bound, upper_bound - pos.2, 3)),
-                    Box::new(move |pos| (2, upper_bound, upper_bound - pos.1, 3)),
-                    Box::new(move |pos| (3, upper_bound, pos.2, 3)),
-                ];
-                let square_5: Square = [
-                    Box::new(move |pos| (0, upper_bound - pos.1, upper_bound, 2)),
-                    Box::new(move |pos| (1, upper_bound - pos.2, lower_bound, 0)),
-                    Box::new(move |pos| (4, pos.1, upper_bound, 2)),
-                    Box::new(move |pos| (3, upper_bound - pos.2, upper_bound, 2)),
-                ];
+        [square_0, square_1, square_2, square_3, square_4, square_5]
+    }
+}
 
-                Ok([square_0, square_1, square_2, square_3, square_4, square_5])
+struct InputCube {}
+
+impl CubeBuilder for InputCube {
+    // Shape:      Square:   Bounds:
+    //    [0][1]      3         L
+    //    [2]      2 [ ] 0   L [ ] U
+    // [3][4]         1         U
+    // [5]
+
+    fn square_size(input: &str) -> Result<usize> {
+        let lines = input.lines().take(1).collect::<Vec<_>>();
+        let Some(first_line) = lines.first() else {
+            return Err(anyhow!("Cannot get first line from input: {}", input));
+        };
+        let Some(lower_bound) = first_line.find(|c: char| c.is_ascii_punctuation()) else {
+            return Err(anyhow!("Invalid first line: {}", first_line));
+        };
+
+        Ok((first_line.len() - lower_bound) / 2)
+    }
+
+    fn build_rel_pos_to_abs_pos(
+        square_size: usize,
+    ) -> Box<dyn Fn(usize, usize, usize) -> (usize, usize)> {
+        Box::new(move |square_index, row, col| match square_index {
+            0 => (row, col + square_size),
+            1 => (row, col + square_size * 2),
+            2 => (row + square_size, col + square_size),
+            3 => (row + square_size * 2, col),
+            4 => (row + square_size * 2, col + square_size),
+            5 => (row + square_size * 3, col),
+            _ => unreachable!(),
+        })
+    }
+
+    fn build_abs_pos_to_rel_pos(
+        square_size: usize,
+    ) -> Box<dyn Fn(usize, usize) -> (usize, usize, usize)> {
+        Box::new(move |row, col| match (row, col) {
+            (row, col) if row < square_size && col < square_size * 2 => (0, row, col - square_size),
+            (row, col) if row < square_size => (1, row, col - square_size * 2),
+            (row, col) if row < square_size * 2 => (2, row - square_size, col - square_size),
+            (row, col) if row < square_size * 3 && col < square_size => {
+                (3, row - square_size * 2, col)
             }
-            x => Err(anyhow!("Invalid square size: {}", x)),
-        }
+            (row, col) if row < square_size * 3 => (4, row - square_size * 2, col - square_size),
+            (row, col) => (5, row - square_size * 3, col),
+        })
+    }
+
+    fn build_squares(square_size: usize) -> [Square; 6] {
+        let lower_bound = 0;
+        let upper_bound = square_size - 1;
+
+        let square_0: Square = [
+            Box::new(move |pos| (1, pos.1, 0, 0)),
+            Box::new(move |pos| (2, lower_bound, pos.2, 1)),
+            Box::new(move |pos| (3, upper_bound - pos.1, lower_bound, 0)),
+            Box::new(move |pos| (5, pos.2, lower_bound, 0)),
+        ];
+        let square_1: Square = [
+            Box::new(move |pos| (4, upper_bound - pos.1, upper_bound, 2)),
+            Box::new(move |pos| (2, pos.2, upper_bound, 2)),
+            Box::new(move |pos| (0, pos.1, upper_bound, 2)),
+            Box::new(move |pos| (5, upper_bound, pos.2, 3)),
+        ];
+        let square_2: Square = [
+            Box::new(move |pos| (1, upper_bound, pos.1, 3)),
+            Box::new(move |pos| (4, lower_bound, pos.2, 1)),
+            Box::new(move |pos| (3, lower_bound, pos.1, 1)),
+            Box::new(move |pos| (0, upper_bound, pos.2, 3)),
+        ];
+        let square_3: Square = [
+            Box::new(move |pos| (4, pos.1, lower_bound, 0)),
+            Box::new(move |pos| (5, lower_bound, pos.2, 1)),
+            Box::new(move |pos| (0, upper_bound - pos.1, lower_bound, 0)),
+            Box::new(move |pos| (2, pos.2, lower_bound, 0)),
+        ];
+        let square_4: Square = [
+            Box::new(move |pos| (1, upper_bound - pos.1, upper_bound, 2)),
+            Box::new(move |pos| (5, pos.2, upper_bound, 2)),
+            Box::new(move |pos| (3, pos.1, upper_bound, 2)),
+            Box::new(move |pos| (2, upper_bound, pos.2, 3)),
+        ];
+        let square_5: Square = [
+            Box::new(move |pos| (4, upper_bound, pos.1, 3)),
+            Box::new(move |pos| (1, lower_bound, pos.2, 1)),
+            Box::new(move |pos| (0, lower_bound, pos.1, 1)),
+            Box::new(move |pos| (3, upper_bound, pos.2, 3)),
+        ];
+
+        [square_0, square_1, square_2, square_3, square_4, square_5]
     }
 }
 
