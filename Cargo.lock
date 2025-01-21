@@ -281,6 +281,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "day-23"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "aoc-cli",
+]
+
+[[package]]
 name = "day-3"
 version = "0.1.0"
 dependencies = [
