@@ -110,12 +110,7 @@ fn parse_input_into_grid(input: String) -> Result<Vec<Vec<u8>>> {
 }
 
 /// Gets a function to check the safety of the given tile at a specific step.
-fn tile_safety(
-    tile: Coord,
-    rows: usize,
-    cols: usize,
-    grid: &[Vec<u8>],
-) -> Box<dyn Fn(usize) -> bool> {
+fn tile_safety(tile: Coord, rows: usize, cols: usize, grid: &[Vec<u8>]) -> impl Fn(usize) -> bool {
     // For each tile, we observe the blizzards that can occur within the same row or column:
     // - within the row, only '<' and '>' matter:
     //   - '>' position is (step + col) % cols.
@@ -147,7 +142,7 @@ fn tile_safety(
         .filter_map(|(row, bytes)| if bytes[col] == b'v' { Some(row) } else { None })
         .collect::<Vec<_>>();
 
-    Box::new(move |step| {
+    move |step| {
         right_blizzards
             .iter()
             .all(|blizzard| col != (step + blizzard) % cols)
@@ -160,21 +155,22 @@ fn tile_safety(
             && down_blizzards
                 .iter()
                 .all(|blizzard| row != (step + blizzard) % rows)
-    })
+    }
 }
 
 type Node = (usize, usize, usize);
 
-type SafetyChecks = Vec<Vec<Box<dyn Fn(usize) -> bool>>>;
-
-fn successors(
+fn successors<F>(
     node: &Node,
     rows: usize,
     cols: usize,
-    safety_checks: &SafetyChecks,
+    safety_checks: &[Vec<F>],
     start_index: usize,
     end_index: usize,
-) -> Vec<(Node, usize)> {
+) -> Vec<(Node, usize)>
+where
+    F: Fn(usize) -> bool,
+{
     let &(row, col, step) = node;
 
     let mut nodes = Vec::new();
