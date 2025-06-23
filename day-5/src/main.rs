@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
+use regex::Regex;
 
 use aoc_cli::{get_part, Part};
-use regex::Regex;
 
 fn main() {
     match get_part("inputs/day-5.txt") {
@@ -28,7 +28,12 @@ fn part_1(input: String) -> Result<String> {
 
     let tops = stacks
         .into_iter()
-        .map(|stack| stack.into_iter().last().ok_or(anyhow!("Cannot get top")))
+        .map(|stack| {
+            stack
+                .into_iter()
+                .next_back()
+                .ok_or(anyhow!("Cannot get top"))
+        })
         .collect::<Result<Vec<_>>>()?;
 
     Ok(String::from_utf8(tops)?)
@@ -49,7 +54,12 @@ fn part_2(input: String) -> Result<String> {
 
     let tops = stacks
         .into_iter()
-        .map(|stack| stack.into_iter().last().ok_or(anyhow!("Cannot get top")))
+        .map(|stack| {
+            stack
+                .into_iter()
+                .next_back()
+                .ok_or(anyhow!("Cannot get top"))
+        })
         .collect::<Result<Vec<_>>>()?;
 
     Ok(String::from_utf8(tops)?)
@@ -86,7 +96,7 @@ fn convert_input_into_stacks(input: &str) -> Result<Stacks> {
     let stack_count = indices
         .split_whitespace()
         .filter(|token| !token.is_empty())
-        .last()
+        .next_back()
         .map(str::parse::<u8>)
         .ok_or(anyhow!("Cannot get stack count"))?
         .map_err(|error| anyhow!("Cannot parse stack count: {}", error))?;
