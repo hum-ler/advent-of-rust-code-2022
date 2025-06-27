@@ -1,15 +1,15 @@
 use std::collections::HashSet;
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use itertools::Itertools;
 
-use aoc_cli::{get_part, Part};
+use cli::{Part, get_part};
 
 fn main() {
     match get_part("inputs/day-18.txt") {
         Ok(Part::Part1(input)) => println!("{:?}", part_1(input)),
         Ok(Part::Part2(input)) => println!("{:?}", part_2(input)),
-        Err(error) => println!("{:?}", error),
+        Err(error) => println!("{error:?}"),
     }
 }
 
@@ -57,24 +57,24 @@ fn bounding_box(coords: &HashSet<Coord>) -> (Coord, Coord) {
     coords.iter().fold(
         ((u8::MAX, u8::MAX, u8::MAX), (0, 0, 0)),
         |mut acc, coord| {
-            if coord.0 < acc.0 .0 {
-                acc.0 .0 = coord.0;
+            if coord.0 < acc.0.0 {
+                acc.0.0 = coord.0;
             }
-            if coord.1 < acc.0 .1 {
-                acc.0 .1 = coord.1;
+            if coord.1 < acc.0.1 {
+                acc.0.1 = coord.1;
             }
-            if coord.2 < acc.0 .2 {
-                acc.0 .2 = coord.2;
+            if coord.2 < acc.0.2 {
+                acc.0.2 = coord.2;
             }
 
-            if coord.0 > acc.1 .0 {
-                acc.1 .0 = coord.0;
+            if coord.0 > acc.1.0 {
+                acc.1.0 = coord.0;
             }
-            if coord.1 > acc.1 .1 {
-                acc.1 .1 = coord.1;
+            if coord.1 > acc.1.1 {
+                acc.1.1 = coord.1;
             }
-            if coord.2 > acc.1 .2 {
-                acc.1 .2 = coord.2;
+            if coord.2 > acc.1.2 {
+                acc.1.2 = coord.2;
             }
 
             acc
@@ -84,20 +84,20 @@ fn bounding_box(coords: &HashSet<Coord>) -> (Coord, Coord) {
 
 /// Expands the bounding box by 1.
 fn expand_bounding_box(bounding_box: (Coord, Coord)) -> Result<(Coord, Coord)> {
-    if bounding_box.0 .0 == 0 || bounding_box.0 .1 == 0 || bounding_box.0 .2 == 0 {
+    if bounding_box.0.0 == 0 || bounding_box.0.1 == 0 || bounding_box.0.2 == 0 {
         return Err(anyhow!("Lower bound contains 0"));
     }
 
     Ok((
         (
-            bounding_box.0 .0 - 1,
-            bounding_box.0 .1 - 1,
-            bounding_box.0 .2 - 1,
+            bounding_box.0.0 - 1,
+            bounding_box.0.1 - 1,
+            bounding_box.0.2 - 1,
         ),
         (
-            bounding_box.1 .0 + 1,
-            bounding_box.1 .1 + 1,
-            bounding_box.1 .2 + 1,
+            bounding_box.1.0 + 1,
+            bounding_box.1.1 + 1,
+            bounding_box.1.2 + 1,
         ),
     ))
 }

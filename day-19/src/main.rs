@@ -1,16 +1,16 @@
 use std::{collections::HashMap, str::FromStr};
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 use regex::Regex;
 
-use aoc_cli::{get_part, Part};
+use cli::{Part, get_part};
 
 fn main() {
     match get_part("inputs/day-19.txt") {
         Ok(Part::Part1(input)) => println!("{:?}", part_1(input)),
         Ok(Part::Part2(input)) => println!("{:?}", part_2(input)),
-        Err(error) => println!("{:?}", error),
+        Err(error) => println!("{error:?}"),
     }
 }
 

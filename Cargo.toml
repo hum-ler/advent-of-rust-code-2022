@@ -1,14 +1,14 @@
 [workspace.package]
-edition = "2021"
+edition = "2024"
 version = "0.1.0"
 
 [workspace.dependencies]
 anyhow = "1.0.95"
-aoc-cli = { version = "0.1.0", path = "aoc-cli" }
+cli = { version = "0.1.0", path = "cli" }
 
 [workspace]
 members = [
-    "aoc-cli",
+    "cli",
     "day-1",
     "day-10",
     "day-11",
@@ -35,4 +35,4 @@ members = [
     "day-8",
     "day-9",
 ]
-resolver = "2"
+resolver = "3"

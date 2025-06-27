@@ -5,4 +5,4 @@ version.workspace = true
 
 [dependencies]
 anyhow.workspace = true
-aoc-cli.workspace = true
+cli.workspace = true

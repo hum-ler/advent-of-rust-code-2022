@@ -1,14 +1,14 @@
 use std::collections::HashSet;
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 
-use aoc_cli::{get_part, Part};
+use cli::{Part, get_part};
 
 fn main() {
     match get_part("inputs/day-14.txt") {
         Ok(Part::Part1(input)) => println!("{:?}", part_1(input)),
         Ok(Part::Part2(input)) => println!("{:?}", part_2(input)),
-        Err(error) => println!("{:?}", error),
+        Err(error) => println!("{error:?}"),
     }
 }
 
@@ -36,11 +36,10 @@ fn parse_input_into_rock_layout(input: String) -> Result<(HashSet<Coord>, usize)
         .flatten()
         .collect::<HashSet<_>>();
 
-    let Some(bottom_rock) =
-        rocks
-            .clone()
-            .into_iter()
-            .reduce(|acc, rock| if rock.1 > acc.1 { rock } else { acc })
+    let Some(bottom_rock) = rocks
+        .clone()
+        .into_iter()
+        .reduce(|acc, rock| if rock.1 > acc.1 { rock } else { acc })
     else {
         return Err(anyhow!("Cannot deduce max depth"));
     };

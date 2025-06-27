@@ -5,5 +5,5 @@ version.workspace = true
 
 [dependencies]
 anyhow.workspace = true
-aoc-cli.workspace = true
+cli.workspace = true
 regex = "1.11.1"

@@ -2,13 +2,13 @@ use std::collections::{HashMap, HashSet};
 
 use anyhow::Result;
 
-use aoc_cli::{get_part, Part};
+use cli::{Part, get_part};
 
 fn main() {
     match get_part("inputs/day-23.txt") {
         Ok(Part::Part1(input)) => println!("{:?}", part_1(input)),
         Ok(Part::Part2(input)) => println!("{:?}", part_2(input)),
-        Err(error) => println!("{:?}", error),
+        Err(error) => println!("{error:?}"),
     }
 }
 
@@ -186,17 +186,17 @@ fn bounding_box(elves: &HashSet<Coord>) -> (Coord, Coord) {
     elves.iter().fold(
         ((usize::MAX, usize::MAX), (usize::MIN, usize::MIN)),
         |mut acc, elf| {
-            if elf.0 < acc.0 .0 {
-                acc.0 .0 = elf.0;
+            if elf.0 < acc.0.0 {
+                acc.0.0 = elf.0;
             }
-            if elf.0 > acc.1 .0 {
-                acc.1 .0 = elf.0;
+            if elf.0 > acc.1.0 {
+                acc.1.0 = elf.0;
             }
-            if elf.1 < acc.0 .1 {
-                acc.0 .1 = elf.1;
+            if elf.1 < acc.0.1 {
+                acc.0.1 = elf.1;
             }
-            if elf.1 > acc.1 .1 {
-                acc.1 .1 = elf.1;
+            if elf.1 > acc.1.1 {
+                acc.1.1 = elf.1;
             }
 
             acc

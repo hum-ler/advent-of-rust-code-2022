@@ -1,12 +1,12 @@
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 
-use aoc_cli::{get_part, Part};
+use cli::{Part, get_part};
 
 fn main() {
     match get_part("inputs/day-10.txt") {
         Ok(Part::Part1(input)) => println!("{:?}", part_1(input)),
         Ok(Part::Part2(input)) => println!("{:?}", part_2(input)),
-        Err(error) => println!("{:?}", error),
+        Err(error) => println!("{error:?}"),
     }
 }
 
@@ -24,7 +24,7 @@ fn part_2(input: String) -> Result<String> {
     let register = cumulate_operands_into_register(operands);
 
     let screen = print_crt(&register);
-    println!("{}", screen);
+    println!("{screen}");
 
     Ok(screen)
 }
